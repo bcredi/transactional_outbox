@@ -8,7 +8,7 @@ defmodule TransactionalOutbox do
   Configure the dispatcher in the *config.exs*
 
       ```
-      config :message_relay,
+      config :transactional_outbox, :message_relay,
         dispatcher: MyApp.AMQPDispatcher
       ```
 
