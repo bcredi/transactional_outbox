@@ -2,6 +2,15 @@ defmodule TransactionalOutbox do
   @moduledoc """
   A library to publish events atomically!
 
+  ## Components
+
+  The library is composed by three componenets:
+
+  - `TransactionalOutbox.MessageRelay`: A server that listen for postgres notifications
+  and call the dispatcher.
+  - `TransactionalOutbox.MessageRelay.Dispatcher`: Responsible by receive an event and
+  publish it in the external service like rabbitmq.
+  - `TransactionalOutbox.Outbox.EventBuilder`: Build your domain events.
 
   ## How to use
 
