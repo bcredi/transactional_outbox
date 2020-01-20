@@ -16,14 +16,11 @@ defmodule TransactionalOutbox do
 
   Configure the dispatcher in the *config.exs*
 
-      ```
-      config :transactional_outbox, :message_relay,
+      config :my_app, TransactionalOutbox,
         dispatcher: MyApp.AMQPDispatcher
-      ```
 
   Implement the dispatcher module:
 
-      ```
       defmodule MyApp.AMQPDispatcher do
         @behaviour TransactionalOutbox.MessageRelay.Dispatcher
 
@@ -42,11 +39,9 @@ defmodule TransactionalOutbox do
           |> Broker.publish(:user_created)
         end
       end
-      ```
 
   Initialize the `TransactionalOutbox.MessageRelay` with your application
 
-      ```
       defmodule MyApp.Application do
         ...
 
@@ -54,7 +49,7 @@ defmodule TransactionalOutbox do
           children =
             [
               MyApp.Repo,
-              TransactionalOutbox.MessageRelay
+              {TransactionalOutbox.MessageRelay, Application.get_env(:my_app, TransactionalOutbox)}
             ]
 
           Supervisor.start_link(children, strategy: :one_for_one, name: MyApp.Supervisor)
@@ -62,11 +57,9 @@ defmodule TransactionalOutbox do
 
         ...
       end
-      ```
 
   Define an event using the `TransactionalOutbox.Outbox.EventBuilder`.
 
-      ```
       defmodule MyApp.Accounts.UserCreated do
         use TransactionalOutbox.Outbox.EventBuilder,
           as: "my_app.user.created",
@@ -74,11 +67,9 @@ defmodule TransactionalOutbox do
 
         defstruct ~w(id name email)a
       end
-      ```
 
   Now, just publish your domain events using `Ecto.Multi`
 
-        ```
         defmodule MyApp.Accounts do
           alias Ecto.Multi
 
@@ -99,6 +90,5 @@ defmodule TransactionalOutbox do
             end)
           end
         end
-        ```
   """
 end

@@ -11,6 +11,7 @@ defmodule TransactionalOutbox.Outbox.EventBuilder do
 
       defmodule MyEvent do
         use MessageBroker.Publisher.EventBuilder, as: "my_event"
+
         @derive Jason.Encoder
         defstruct [:key1, :key2]
       end
@@ -57,6 +58,7 @@ defmodule TransactionalOutbox.Outbox.EventBuilder do
         data: #Event<>,
         valid?: true
       }
+
   """
 
   alias TransactionalOutbox.Outbox.Event
@@ -73,6 +75,7 @@ defmodule TransactionalOutbox.Outbox.EventBuilder do
 
           iex> new(%{key: "value"})
           %Ecto.Changeset{}
+
       """
       @spec new(struct | map) :: Ecto.Changeset.t()
       def new(%{} = payload), do: build_event(payload)
@@ -82,8 +85,6 @@ defmodule TransactionalOutbox.Outbox.EventBuilder do
         |> process_payload()
         |> do_build_event()
       end
-
-      defp process_payload(payload), do: payload
 
       defp do_build_event(%_{} = schema) do
         attrs = %{
@@ -103,6 +104,7 @@ defmodule TransactionalOutbox.Outbox.EventBuilder do
         Event.changeset(%Event{}, attrs)
       end
 
+      defp process_payload(payload), do: payload
       defoverridable process_payload: 1
     end
   end

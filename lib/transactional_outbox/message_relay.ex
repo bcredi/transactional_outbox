@@ -1,8 +1,12 @@
 defmodule TransactionalOutbox.MessageRelay do
   @moduledoc """
-  MessageRelay listen for new events/messages in the `Outbox` table
+  MessageRelay listen for new records in the `transactional_outbox_events` table
   and dispatch them for the configured handler.
   """
+
+  defmodule InvalidConfigError do
+    defexception message: "The given config is invalid!"
+  end
 
   use GenServer
 
@@ -17,9 +21,13 @@ defmodule TransactionalOutbox.MessageRelay do
   @channel "event_created"
 
   @spec start_link(%{repo: any}) :: :ignore | {:error, any} | {:ok, pid}
-  def start_link(%{repo: _} = config) do
+  def start_link(config) do
+    if not valid_config?(config), do: raise(InvalidConfigError)
     GenServer.start_link(__MODULE__, config, name: __MODULE__)
   end
+
+  defp valid_config?(%{repo: _, dispatcher: _}), do: true
+  defp valid_config?(_), do: false
 
   @spec listen(Struct.t(), String.t()) :: {:error, any} | {:ok, pid, reference}
   def listen(repo, channel) do
@@ -66,7 +74,7 @@ defmodule TransactionalOutbox.MessageRelay do
     |> Multi.run(:publish_message, fn _, %{event: event} ->
       ## Publisher.publish_event(publisher_name, event)
       # call the adapter
-      {:ok, :ok}
+      {:ok, event}
     end)
     |> repo.transaction()
     |> handle_transaction_result(id, state)
