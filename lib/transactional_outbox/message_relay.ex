@@ -18,7 +18,7 @@ defmodule TransactionalOutbox.MessageRelay do
 
   require Logger
 
-  @channel "event_created"
+  @channel "transactional_outbox_event_created"
 
   @spec start_link(%{repo: any}) :: :ignore | {:error, any} | {:ok, pid}
   def start_link(config) do
@@ -46,12 +46,8 @@ defmodule TransactionalOutbox.MessageRelay do
   end
 
   @impl GenServer
-  def handle_continue(:process_available_events, %{repo: repo} = state) do
-    Event
-    |> where([e], is_nil(e.status))
-    |> repo.all()
-    |> Enum.each(&process_event(&1.id, state))
-
+  def handle_continue(:process_available_events, %{repo: repo, dispatcher: dispatcher} = state) do
+    TransactionalOutbox.MessageRelay.EventProcessor.process_avaiable_events(repo, dispatcher)
     {:noreply, state}
   end
 
@@ -67,37 +63,9 @@ defmodule TransactionalOutbox.MessageRelay do
     {:noreply, state}
   end
 
-  defp process_event(id, %{repo: repo} = state) do
-    Multi.new()
-    |> Multi.run(:event, fn _, _ -> get_event(repo, id) end)
-    |> Multi.delete(:delete_event, fn %{event: event} -> event end)
-    |> Multi.run(:publish_message, fn _, %{event: event} ->
-      ## Publisher.publish_event(publisher_name, event)
-      # call the adapter
-      {:ok, event}
-    end)
-    |> repo.transaction()
+  defp process_event(id, %{repo: repo, dispatcher: dispatcher} = state) do
+    TransactionalOutbox.MessageRelay.EventProcessor.process(id, repo, dispatcher)
     |> handle_transaction_result(id, state)
-  end
-
-  defp get_event(repo, id) do
-    case do_get_event(repo, id) do
-      nil -> {:error, :event_not_found}
-      :lock_not_available -> {:error, :event_locked}
-      %Event{} = event -> {:ok, event}
-      error -> {:error, error}
-    end
-  end
-
-  defp do_get_event(repo, id) do
-    Event
-    |> where([e], e.id == ^id)
-    |> lock("FOR UPDATE NOWAIT")
-    |> repo.one()
-  rescue
-    e in Postgrex.Error ->
-      %{postgres: %{code: error_code}} = e
-      error_code
   end
 
   defp handle_transaction_result(result, id, %{repo: repo} = state) do
