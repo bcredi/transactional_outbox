@@ -1,15 +1,26 @@
 defmodule TransactionalOutbox.MessageRelay.EventProcessor do
-  @moduledoc false
+  @moduledoc """
+  Event Processor module.
+  Use this module to process events that you want.
+  """
 
   import Ecto.Query
   alias Ecto.Multi
 
   alias TransactionalOutbox.Outbox.Event
 
+  @doc """
+  Process all events in the outbox table.
+
+  ## Examples
+
+      iex> process_avaiable_events(MyApp.Repo, MyApp.AMQPDispatcher)
+      [{:ok, %{event: %Event{}, delete_event: %Event{}, publish_message: %Event{}}}, ...]
+
+  """
   @spec process_avaiable_events(Ecto.Repo.t(), TransactionalOutbox.MessageRelay.Dispatcher.t()) ::
           [
             {:ok, any()}
-            | {:error, any()}
             | {:error, Ecto.Multi.name(), any(), %{required(Ecto.Multi.name()) => any()}}
           ]
   def process_avaiable_events(repo, dispatcher) do
@@ -19,9 +30,24 @@ defmodule TransactionalOutbox.MessageRelay.EventProcessor do
     |> Enum.map(&process(&1.id, repo, dispatcher))
   end
 
+  @doc """
+  Process an event.
+  The record will be locked for update in the database.
+
+  ## Examples
+
+      iex> process("b507ad11-81ee-4802-a0d0-9e3ed8444d8d", MyApp.Repo, MyApp.AMQPDispatcher)
+      {:ok, %{event: %Event{}, delete_event: %Event{}, publish_message: %Event{}}}
+
+      iex> process("b877af4c-71b5-4a00-8b0a-999574b20a8b", MyApp.Repo, MyApp.AMQPDispatcher)
+      {:error, :event, :event_not_found, %{}}
+
+      iex> process("b877af4c-71b5-4a00-8b0a-999574b20a8b", MyApp.Repo, MyApp.AMQPDispatcher)
+      {:error, :event, :event_locked, %{}}
+
+  """
   @spec process(String.t(), Ecto.Repo.t(), TransactionalOutbox.MessageRelay.Dispatcher.t()) ::
-          {:ok, any()}
-          | {:error, any()}
+          {:ok, map()}
           | {:error, Ecto.Multi.name(), any(), %{required(Ecto.Multi.name()) => any()}}
   def process(event_id, repo, dispatcher) do
     Multi.new()

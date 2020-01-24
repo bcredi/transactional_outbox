@@ -4,13 +4,14 @@ defmodule TransactionalOutbox do
 
   ## Components
 
-  The library is composed by three componenets:
+  The library is composed by the following componenets:
 
-  - `TransactionalOutbox.MessageRelay`: A server that listen for postgres notifications
-  and call the dispatcher.
-  - `TransactionalOutbox.MessageRelay.Dispatcher`: Responsible by receive an event and
-  publish it in the external service like rabbitmq.
-  - `TransactionalOutbox.Outbox.EventBuilder`: Build your domain events.
+  - `TransactionalOutbox.MessageRelay.Dispatcher`: Publish an event in the external service
+  like rabbitmq.
+  - `TransactionalOutbox.MessageRelay.EventProcessor`: Retrieve the event from database,
+  call the dispatcher and remove it atomically.
+  - `TransactionalOutbox.Outbox.EventBuilder`: Build your domain events and persist to
+  the database.
 
   ## How to use
 
@@ -31,6 +32,7 @@ defmodule TransactionalOutbox do
 
         alias TransactionalOutbox.Outbox.Event
 
+        @impl TransactionalOutbox.MessageRelay.Dispatcher
         def dispatch(%Event{} = event) do
           %Message{}
           |> put_body(event.payload)
@@ -38,24 +40,6 @@ defmodule TransactionalOutbox do
           |> put_header("version", event.version)
           |> Broker.publish(:user_created)
         end
-      end
-
-  Initialize the `TransactionalOutbox.MessageRelay` with your application
-
-      defmodule MyApp.Application do
-        ...
-
-        def start(_type, _args) do
-          children =
-            [
-              MyApp.Repo,
-              {TransactionalOutbox.MessageRelay, Application.get_env(:my_app, TransactionalOutbox)}
-            ]
-
-          Supervisor.start_link(children, strategy: :one_for_one, name: MyApp.Supervisor)
-        end
-
-        ...
       end
 
   Define an event using the `TransactionalOutbox.Outbox.EventBuilder`.
@@ -79,15 +63,33 @@ defmodule TransactionalOutbox do
             Multi.new()
             |> Multi.insert(:user, User.changeset(params))
             |> Multi.run(:user_created, fn repo, %{user: user} ->
-              user
-              |> UserCreated.new(user)
-              |> repo.insert()
+              user |> UserCreated.new(user) |> repo.insert()
+            end)
+            |> Multi.run(:user_created_event, fn repo, %{user_created: user_created_event} ->
+              user_created_event |> MyApp.MessageRelayWorker.new() |> Oban.insert()
             end)
             |> Multi.run(:profile, fn repo, %{user: user} ->
-              user
-              |> Profile.changeset()
-              |> repo.insert()
+              user |> Profile.changeset() |> repo.insert()
             end)
+          end
+        end
+
+  ## Oban integration
+
+  In the last version, we provide a server that listen for postgres notifications
+  and call the `EventProcessor`. But, the team behind Oban is making a great job
+  and we want to take advantages of their functionallity.
+
+  To use it, just implement the worker module
+
+        defmodule MyApp.MessageRelayWorker do
+          use Oban.Worker, queue: :message_relay
+
+          alias TransactionalOutbox.MessageRelay.EventProcessor
+
+          @impl Oban.Worker
+          def perform(%{"id" => id} = args, _job) do
+            EventProcessor.process(id, MyApp.Repo, MyApp.AMQPDispatcher)
           end
         end
   """

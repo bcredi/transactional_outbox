@@ -8,3 +8,5 @@ ExUnit.start()
   )
 
 Ecto.Adapters.SQL.Sandbox.mode(TransactionalOutbox.Repo, :manual)
+
+Mox.defmock(DispatcherMock, for: TransactionalOutbox.MessageRelay.Dispatcher)

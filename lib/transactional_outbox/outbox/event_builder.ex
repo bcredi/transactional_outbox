@@ -10,14 +10,14 @@ defmodule TransactionalOutbox.Outbox.EventBuilder do
   ## Examples
 
       defmodule MyEvent do
-        use MessageBroker.Publisher.EventBuilder, as: "my_event"
+        use TransactionalOutbox.Outbox.EventBuilder, as: "my_event"
 
         @derive Jason.Encoder
         defstruct [:key1, :key2]
       end
 
       defmodule MyAnotherEvent do
-        use MessageBroker.Publisher.EventBuilder, as: "my_another_event"
+        use TransactionalOutbox.Outbox.EventBuilder, as: "my_another_event"
 
         @derive Jason.Encoder
         defstruct [:key1, :key2, :key3]

@@ -1,6 +1,7 @@
 defmodule TransactionalOutbox.Outbox.Event do
-  @type uuid :: String.t()
+  @moduledoc false
 
+  @type uuid :: String.t()
   @type t :: %__MODULE__{
           id: uuid(),
           event_name: String.t(),
@@ -13,7 +14,7 @@ defmodule TransactionalOutbox.Outbox.Event do
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
-  schema "transactional_outbox_events" do
+  schema "message_broker_events" do
     field(:event_name, :string)
     field(:payload, :map)
     field(:status, :map)
