@@ -1,8 +1,9 @@
 defmodule TransactionalOutbox.MessageRelay.EventProcessorTest do
   import Mox
-  use TransactionalOutbox.DataCase
+  use TransactionalOutbox.DataCase, async: false
 
   alias TransactionalOutbox.Repo
+
   alias TransactionalOutbox.MessageRelay.EventProcessor
   alias TransactionalOutbox.Outbox.Event
 
@@ -69,6 +70,6 @@ defmodule TransactionalOutbox.MessageRelay.EventProcessorTest do
     |> Repo.insert!()
   end
 
-  def outbox_table_is_empty?, do: Enum.count(all_events()) == 0
+  def outbox_table_is_empty?, do: Enum.empty?(all_events())
   def all_events, do: Repo.all(Event)
 end

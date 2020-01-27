@@ -8,6 +8,7 @@ defmodule TransactionalOutbox.MixProject do
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      test_coverage: [tool: ExCoveralls],
       elixirc_paths: elixirc_paths(Mix.env()),
       elixirc_options: [warnings_as_errors: true],
       # Docs
@@ -16,7 +17,6 @@ defmodule TransactionalOutbox.MixProject do
       homepage_url: "https://github.com/bcredi/transactional_outbox",
       docs: [
         main: "TransactionalOutbox",
-        # logo: "path/to/logo.png",
         extras: ["README.md"]
       ]
     ]
@@ -36,7 +36,9 @@ defmodule TransactionalOutbox.MixProject do
       {:ecto_sql, "~> 3.0"},
       {:jason, "~> 1.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:mox, "~> 0.5", only: :test}
+      {:mox, "~> 0.5", only: :test},
+      {:excoveralls, "~> 0.12", only: :test},
+      {:credo, "~> 1.2", only: [:dev, :test], runtime: false}
     ]
   end
 

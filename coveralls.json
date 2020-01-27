@@ -1,0 +1,12 @@
+{
+  "skip_files": [
+    "lib/transactional_outbox.ex",
+    "lib/transactional_outbox/message_relay/dispatcher.ex",    
+    "lib/transactional_outbox/outbox/migrations.ex",
+    "test/support"
+  ],
+  "coverage_options": {
+    "treat_no_relevant_lines_as_covered": true,
+    "minimum_coverage": 80
+  }
+}

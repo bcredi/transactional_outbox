@@ -15,11 +15,6 @@ defmodule TransactionalOutbox do
 
   ## How to use
 
-  Configure the dispatcher in the *config.exs*
-
-      config :my_app, TransactionalOutbox,
-        dispatcher: MyApp.AMQPDispatcher
-
   Implement the dispatcher module:
 
       defmodule MyApp.AMQPDispatcher do
@@ -32,7 +27,6 @@ defmodule TransactionalOutbox do
 
         alias TransactionalOutbox.Outbox.Event
 
-        @impl TransactionalOutbox.MessageRelay.Dispatcher
         def dispatch(%Event{} = event) do
           %Message{}
           |> put_body(event.payload)
@@ -41,6 +35,11 @@ defmodule TransactionalOutbox do
           |> Broker.publish(:user_created)
         end
       end
+
+  Configure the dispatcher in the *config.exs*
+
+      config :my_app, TransactionalOutbox.MessageRelay.Dispatcher,
+        MyApp.AMQPDispatcher
 
   Define an event using the `TransactionalOutbox.Outbox.EventBuilder`.
 
@@ -63,7 +62,7 @@ defmodule TransactionalOutbox do
             Multi.new()
             |> Multi.insert(:user, User.changeset(params))
             |> Multi.run(:user_created, fn repo, %{user: user} ->
-              user |> UserCreated.new(user) |> repo.insert()
+              user |> UserCreated.new() |> repo.insert()
             end)
             |> Multi.run(:user_created_event, fn repo, %{user_created: user_created_event} ->
               user_created_event |> MyApp.MessageRelayWorker.new() |> Oban.insert()
